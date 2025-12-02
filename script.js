@@ -37,7 +37,8 @@ function calculateCorrectWords() {
 
 function calculateWPM() {
     const correctWords = calculateCorrectWords().correctCount;
-    const timeInMinutes = time / 60; 
+    const elapsedSeconds = window.gameStart ? Math.max(1, Math.round((Date.now() - window.gameStart) / 1000)) : time;
+    const timeInMinutes = elapsedSeconds / 60; 
     const wpm = Math.round((correctWords / timeInMinutes) * 10) / 10; 
     return wpm;
 }
@@ -60,16 +61,19 @@ function displayResult() {
 }
 
 
-function randWords(words, wordNum) {
-    const index = Math.ceil(Math.random() * wordNum);
-    return words[index];
+function randWords(words) {
+    const length = Array.isArray(words) ? words.length : 0;
+    if (length === 0) return '';
+    const index = Math.floor(Math.random() * length);
+    return words[index] || '';
 }
 
 function displayWords(words) {
     const element = document.getElementById("words");
     element.innerHTML = '';
     for(let i = 0; i < wordNum; i++) {
-        element.innerHTML += `<div class="word"><span class="letter">${randWords(words, wordNum).split('').join('</span><span class="letter">')}</span></div>`;
+        const chosen = randWords(words);
+        element.innerHTML += `<div class="word"><span class="letter">${chosen.split('').join('</span><span class="letter">')}</span></div>`;
     }
     const firstWord = document.querySelector(".word");
     const firstLetter = firstWord.querySelector(".letter");
@@ -79,21 +83,28 @@ function displayWords(words) {
 
 
 function setClass(elName, clName) {
-    elName.className += ` ${clName}`;
+    if (!elName) return;
+    elName.classList.add(clName);
 }
 
 function removeClass(elName, clName) {
-    elName.className = elName.className.replace(clName,'');
+    if (!elName) return;
+    elName.classList.remove(clName);
 }
 
 const startTimer = () => {
     if (countdownStarted) return; 
     countdownStarted = true;
+    if (!window.gameStart) {
+        window.gameStart = Date.now();
+    }
+    if (!timerDiv) timerDiv = document.getElementById('timer');
     let endTime = Date.now() + time * 1000;
 
     countdown = setInterval(() => {
         let remaining = Math.round((endTime - Date.now()) / 1000);
-        timerDiv.textContent = remaining > 0 ? remaining : 0;
+        if (!timerDiv) timerDiv = document.getElementById('timer');
+        if (timerDiv) timerDiv.textContent = remaining > 0 ? remaining : 0;
         if (remaining <= 0) {
             clearInterval(countdown);
             setClass(document.querySelector('#game'), 'over');
@@ -103,7 +114,7 @@ const startTimer = () => {
 };
 
 
-fetch('/1000-most-common-words.txt')
+fetch('./1000-most-common-words.txt')
 .then((res) => res.text()) 
 .then((text) => {
     wordList = text.split('\n');
@@ -118,7 +129,9 @@ function newGame() {
 
     clearInterval(countdown);
     countdownStarted = false;
-    timerDiv.textContent = time;
+    if (!timerDiv) timerDiv = document.getElementById('timer');
+    if (timerDiv) timerDiv.textContent = time;
+    window.gameStart = null;
 
 
     totalKeyPresses = 0;
@@ -151,7 +164,7 @@ document.getElementById("game").addEventListener("keyup", (ev) => {
     if(document.querySelector('#game.over')){ 
         return ;
     }
-    if (key !== "Backspace") {
+    if (key.length === 1 && key !== ' ') {
         totalKeyPresses++;
         if (key === expected) {
             correctKeyPresses++;
@@ -170,17 +183,24 @@ document.getElementById("game").addEventListener("keyup", (ev) => {
     } else if (key === ' ') {
             if (expected !== ' ') {
             const incorrectLetters = [...document.querySelectorAll('.word.current .letter:not(.correct)')]
-            for (letter of incorrectLetters) {
+            for (let letter of incorrectLetters) {
                 setClass(letter, 'incorrect');
             }
 
         }
         removeClass(currentWord, 'current');
-        setClass(currentWord.nextSibling, 'current');
-        if (currentLetter) {
-            removeClass(currentLetter, 'current');
+        const nextWord = currentWord?.nextElementSibling;
+        if (nextWord) {
+            setClass(nextWord, 'current');
+            if (currentLetter) {
+                removeClass(currentLetter, 'current');
+            }
+            setClass(nextWord.firstChild, 'current');
+        } else {
+            setClass(document.querySelector('#game'), 'over');
+            clearInterval(countdown);
+            displayResult();
         }
-        setClass(currentWord.nextSibling.firstChild, 'current');
     }
     else if (key === 'Backspace') {
 
@@ -206,7 +226,8 @@ document.getElementById("game").addEventListener("keyup", (ev) => {
         }
     }
 
-    if(currentWord.getBoundingClientRect().top > 250) {
+    const activeWord = document.querySelector('.word.current');
+    if(activeWord && activeWord.getBoundingClientRect().top > 250) {
         const words = document.getElementById('words');
         const margin = Number.parseInt(words.style.marginTop || '0px');
         words.style.marginTop = `${margin - 35}px`
