@@ -70,16 +70,20 @@ function randWords(words) {
 
 function displayWords(words) {
     const element = document.getElementById("words");
-    element.innerHTML = '';
-    for(let i = 0; i < wordNum; i++) {
+    // BOLT ⚡: Optimize word generation by building the HTML string in memory
+    // before writing to the DOM once to avoid repeated reflows.
+    const wordsHTML = [];
+    for (let i = 0; i < wordNum; i++) {
         const chosen = randWords(words);
-        element.innerHTML += `<div class="word"><span class="letter">${chosen.split('').join('</span><span class="letter">')}</span></div>`;
+        wordsHTML.push(`<div class="word"><span class="letter">${chosen.split('').join('</span><span class="letter">')}</span></div>`);
     }
+    element.innerHTML = wordsHTML.join('');
+
     const firstWord = document.querySelector(".word");
     const firstLetter = firstWord.querySelector(".letter");
     setClass(firstWord, "current");
     setClass(firstLetter, "current");
-    }
+}
 
 
 function setClass(elName, clName) {
