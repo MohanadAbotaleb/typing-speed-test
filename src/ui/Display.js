@@ -6,8 +6,20 @@ class Display {
 
     // Function for displaying the list of words that were returned from WordList
     renderWords(words) {
-        this.#wordContainer.innerHTML = words
-            .map(word => `<div class="word">${word.split('').map(letter => `<span class="letter">${letter}</span>`).join('')}</div>`).join('');
+        this.#wordContainer.textContent = '';
+        const fragment = document.createDocumentFragment();
+        words.forEach(word => {
+            const wordDiv = document.createElement('div');
+            wordDiv.className = 'word';
+            word.split('').forEach(letter => {
+                const letterSpan = document.createElement('span');
+                letterSpan.className = 'letter';
+                letterSpan.textContent = letter;
+                wordDiv.appendChild(letterSpan);
+            })
+            fragment.appendChild(wordDiv);
+        })
+        this.#wordContainer.appendChild(fragment);
 
         // Set initial current word/letter
         const firstWord = document.querySelector('.word');
