@@ -6,14 +6,35 @@ class Display {
 
     // Function for displaying the list of words that were returned from WordList
     renderWords(words) {
-        this.#wordContainer.innerHTML = words
-            .map(word => `<div class="word">${word.split('').map(letter => `<span class="letter">${letter}</span>`).join('')}</div>`).join('');
+        // Using a DocumentFragment is more performant than innerHTML for a large number of elements
+        // as it avoids repeated DOM reflows and repaints.
+        const fragment = document.createDocumentFragment();
+        this.#wordContainer.innerHTML = ''; // Clear existing words
+
+        for (const word of words) {
+            const wordDiv = document.createElement('div');
+            wordDiv.className = 'word';
+
+            for (const letter of word) {
+                const letterSpan = document.createElement('span');
+                letterSpan.className = 'letter';
+                letterSpan.textContent = letter;
+                wordDiv.appendChild(letterSpan);
+            }
+            fragment.appendChild(wordDiv);
+        }
+
+        this.#wordContainer.appendChild(fragment);
 
         // Set initial current word/letter
-        const firstWord = document.querySelector('.word');
-        const firstLetter = firstWord?.querySelector('.letter');
-        if (firstWord) addClass(firstWord,'current');
-        if (firstLetter) addClass(firstLetter,'current');
+        const firstWord = this.#wordContainer.querySelector('.word');
+        if (firstWord) {
+            addClass(firstWord, 'current');
+            const firstLetter = firstWord.querySelector('.letter');
+            if (firstLetter) {
+                addClass(firstLetter, 'current');
+            }
+        }
     }
 
     movetoNextWord(currentWord, currentLetter) {
