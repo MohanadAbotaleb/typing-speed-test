@@ -3,3 +3,5 @@ cursor.svg
 node_modules
 script.js
 .vscode/launch.json
+server.log
+server.pid
